@@ -6,6 +6,7 @@ Github: https://github.com/sp4ke
 Description: run cargo commands on a remote workstation/server
 """
 
+
 import argparse
 from  invoke.exceptions import UnexpectedExit
 from fabric import Connection
@@ -21,6 +22,7 @@ DEPS = [
 ERR_CMD = 1
 ERR_DEPENDENCY = 2
 
+#TODO: binary and package names might differ: use `cargo install --list to extract bin name`
 def inst_get_binary(conn, package):
     bin_path = Path(CARGO_BIN_PATH, package).expanduser()
     local_path = Path(CARGO_BIN_PATH).expanduser().__str__()+'/'
