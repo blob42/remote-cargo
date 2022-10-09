@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+"""
+Author: sp4ke
+Email: contact@honeybadger.systems
+Github: https://github.com/sp4ke
+Description: run cargo commands on a remote workstation/server
+"""
+
+import argparse
+from  invoke.exceptions import UnexpectedExit
+from fabric import Connection
+import sys
+from pathlib import Path
+import shutil
+
+CARGO_BIN_PATH="~/.cargo/bin/"
+DEPS = [
+        "rsync"
+        ]
+
+ERR_CMD = 1
+ERR_DEPENDENCY = 2
+
+def inst_get_binary(conn, package):
+    bin_path = Path(CARGO_BIN_PATH, package).expanduser()
+    local_path = Path(CARGO_BIN_PATH).expanduser().__str__()+'/'
+    get_remote_bin = conn.get(bin_path, local=local_path)
+    print("installed {} at {}".format(package, CARGO_BIN_PATH))
+
+
+
+def install(args):
+    package = args.package
+    conn = Connection(args.host)
+    # uname = conn.run('uname -a', hide=True)
+    # msg = 'ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}'
+    # print(msg.format(uname))
+
+    cargo_install = conn.run('cargo install {}'.format(package), hide=True, warn=True)
+    print("{}".format(cargo_install.stdout.strip()))
+    if cargo_install.failed:
+        print(cargo_install.stderr)
+        sys.exit(ERR_CMD)
+    inst_get_binary(conn, package)
+
+
+def ensure_deps():
+    for dep in DEPS:
+        installed = shutil.which(dep)
+        if installed is None:
+            print("{} dependency missing".format(dep), file=sys.stderr)
+            sys.exit(ERR_DEPENDENCY)
+
+if __name__ == '__main__':
+    ensure_deps()
+    parser = argparse.ArgumentParser(description='remote rust cargo commands')
+    parser.add_argument('-H', '--host', default='sihil')
+    #TODO: use a dynamic positional argument, we can pass anything to cargo
+    #TODO: it will be tried on the remote cargo and raise error if it does
+    #TODO: not exist. To do special handling (like install) just watch the 
+    #TODO: argument value
+    subparsers = parser.add_subparsers(dest='command')
+    install_parser = subparsers.add_parser('install', help='install packages from crates.io with remote build')
+    install_parser.set_defaults(func=install)
+    install_parser.add_argument('package', help='package name', metavar='PACKAGE_NAME')
+    build = subparsers.add_parser('build', help='remote build local cargo package')
+    args = parser.parse_args()
+    if args.command is not None:
+        args.func(args)
+    else:
+        parser.print_help()
