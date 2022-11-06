@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 import shutil
 import sys
+import os
 
 CARGO_BIN_PATH='~/.cargo/bin/'
 DEPS = [
@@ -49,9 +50,8 @@ def inst_get_binary(conn, package):
 def install(args):
     package = args.package
     conn = Connection(args.host)
-    # uname = conn.run('uname -a', hide=True)
-    # msg = 'ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}'
-    # print(msg.format(uname))
+    print(args)
+    sys.exit(0)
 
     cargo_install = conn.run('cargo install {}'.format(package), warn=True, echo=True)
     print('{}'.format(cargo_install.stdout.strip()))
@@ -68,20 +68,33 @@ def ensure_deps():
             print('{} dependency missing'.format(dep), file=sys.stderr)
             sys.exit(ERR_DEPENDENCY)
 
+# def any_cmd(args):
+#     conn = Connection(args.host)
+#     run = conn.run(f'cargo {args.command}', echo=True)
+    
+    
+
 if __name__ == '__main__':
     ensure_deps()
+    default_host = os.environ.get('RCARGO_HOST', 'localhost')
     parser = argparse.ArgumentParser(description='remote rust cargo commands')
-    parser.add_argument('-H', '--host', default='sihil')
+    parser.add_argument('-H', '--host', default=default_host)
     #TODO: use a dynamic positional argument, we can pass anything to cargo
     #TODO: it will be tried on the remote cargo and raise error if it does
     #TODO: not exist. To do special handling (like install) just watch the 
     #TODO: argument value
     subparsers = parser.add_subparsers(dest='command')
+    
     install_parser = subparsers.add_parser('install', help='install packages from crates.io with remote build')
     install_parser.set_defaults(func=install)
     install_parser.add_argument('package', help='package name', metavar='PACKAGE_NAME')
+
     build = subparsers.add_parser('build', help='remote build local cargo package')
+
     args = parser.parse_args()
+    if args.host == 'localhost':
+        print('you need to define a host with -H option or RCARGO_HOST env variable')
+        sys.exit(1)
     if args.command is not None:
         args.func(args)
     else:
