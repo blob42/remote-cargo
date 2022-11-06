@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""
+'''
 Author: sp4ke
 Email: contact@honeybadger.systems
 Github: https://github.com/sp4ke
 Description: run cargo commands on a remote workstation/server
-"""
+'''
 
 
 import argparse
@@ -13,10 +13,11 @@ from fabric import Connection
 import sys
 from pathlib import Path
 import shutil
+import sys
 
-CARGO_BIN_PATH="~/.cargo/bin/"
+CARGO_BIN_PATH='~/.cargo/bin/'
 DEPS = [
-        "rsync"
+        'rsync'
         ]
 
 ERR_CMD = 1
@@ -24,10 +25,24 @@ ERR_DEPENDENCY = 2
 
 #TODO: binary and package names might differ: use `cargo install --list to extract bin name`
 def inst_get_binary(conn, package):
-    bin_path = Path(CARGO_BIN_PATH, package).expanduser()
+    find_bin = f'cargo install --list {package} | grep -A1 {package} | tail -n1 | awk \'{{print $1}}\''
+    bin_name = ''
+    try:
+        res = conn.run(find_bin, warn=True, echo=True)
+        if len(res.stdout) == 0:
+            raise ValueError
+        bin_name = res.stdout.strip()
+    except Exception as e:
+        raise e
+
+    bin_path = Path(CARGO_BIN_PATH, bin_name).expanduser()
     local_path = Path(CARGO_BIN_PATH).expanduser().__str__()+'/'
-    get_remote_bin = conn.get(bin_path, local=local_path)
-    print("installed {} at {}".format(package, CARGO_BIN_PATH))
+
+    try:
+        get_remote_bin = conn.get(bin_path, local=local_path)
+    except FileNotFoundError as e:
+        print('could not copy installed package {} from remote'.format(package))
+    print('installed {} at {}'.format(package, CARGO_BIN_PATH))
 
 
 
@@ -38,8 +53,8 @@ def install(args):
     # msg = 'ran {0.command!r} on {0.connection.host}, got stdout:\n{0.stdout}'
     # print(msg.format(uname))
 
-    cargo_install = conn.run('cargo install {}'.format(package), hide=True, warn=True)
-    print("{}".format(cargo_install.stdout.strip()))
+    cargo_install = conn.run('cargo install {}'.format(package), warn=True, echo=True)
+    print('{}'.format(cargo_install.stdout.strip()))
     if cargo_install.failed:
         print(cargo_install.stderr)
         sys.exit(ERR_CMD)
@@ -50,7 +65,7 @@ def ensure_deps():
     for dep in DEPS:
         installed = shutil.which(dep)
         if installed is None:
-            print("{} dependency missing".format(dep), file=sys.stderr)
+            print('{} dependency missing'.format(dep), file=sys.stderr)
             sys.exit(ERR_DEPENDENCY)
 
 if __name__ == '__main__':
