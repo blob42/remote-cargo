@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 '''
-Author: sp4ke
-Email: contact@honeybadger.systems
-Github: https://github.com/sp4ke
+Author: blob42
+Email: contact@blob42.xyz
+Github: https://github.com/blob42
 Description: run cargo commands on a remote workstation/server
 '''
 
