@@ -29,7 +29,7 @@ def inst_get_binary(conn, package):
     find_bin = f'cargo install --list {package} | grep -A1 {package} | tail -n1 | awk \'{{print $1}}\''
     bin_name = ''
     try:
-        res = conn.run(find_bin, warn=True, echo=True)
+        res = conn.run(find_bin, warn=True)
         if len(res.stdout) == 0:
             raise ValueError
         bin_name = res.stdout.strip()
@@ -50,8 +50,6 @@ def inst_get_binary(conn, package):
 def install(args):
     package = args.package
     conn = Connection(args.host)
-    print(args)
-    sys.exit(0)
 
     cargo_install = conn.run('cargo install {}'.format(package), warn=True, echo=True)
     print('{}'.format(cargo_install.stdout.strip()))
