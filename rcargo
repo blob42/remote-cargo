@@ -15,6 +15,16 @@ from pathlib import Path
 import shutil
 import sys
 import os
+from rich import print
+import logging
+from rich.logging import RichHandler
+
+LOG_FORMAT = '%(message)s'
+logging.basicConfig(
+        level='WARN', format=LOG_FORMAT, datefmt='[%X]', handlers=[RichHandler(markup=True)]
+        )
+log = logging.getLogger('rcargo')
+
 
 CARGO_BIN_PATH='~/.cargo/bin/'
 DEPS = [
@@ -25,14 +35,15 @@ ERR_CMD = 1
 ERR_DEPENDENCY = 2
 
 #TODO: binary and package names might differ: use `cargo install --list to extract bin name`
-def inst_get_binary(conn, package):
-    find_bin = f'cargo install --list {package} | grep -A1 {package} | tail -n1 | awk \'{{print $1}}\''
+def inst_get_binary(conn, package, debug=False):
+    find_bin = f'cargo install --list | grep -A1 {package} | sed -nE "s/ *//; 2 p"'
     bin_name = ''
     try:
-        res = conn.run(find_bin, warn=True)
+        res = conn.run(find_bin, echo=False, hide='out')
         if len(res.stdout) == 0:
             raise ValueError
         bin_name = res.stdout.strip()
+        log.info(f'fetching binary [bold blue]{bin_name}[/bold blue] from package [bold green]{package}[/bold green]')
     except Exception as e:
         raise e
 
@@ -43,7 +54,7 @@ def inst_get_binary(conn, package):
         get_remote_bin = conn.get(bin_path, local=local_path)
     except FileNotFoundError as e:
         print('could not copy installed package {} from remote'.format(package))
-    print('installed {} at {}'.format(package, CARGO_BIN_PATH))
+    print(f'installed [bold blue]{bin_name}[/bold blue] at {CARGO_BIN_PATH}')
 
 
 
@@ -56,7 +67,7 @@ def install(args):
     if cargo_install.failed:
         print(cargo_install.stderr)
         sys.exit(ERR_CMD)
-    inst_get_binary(conn, package)
+    inst_get_binary(conn, package, args.debug)
 
 
 def ensure_deps():
@@ -77,6 +88,7 @@ if __name__ == '__main__':
     default_host = os.environ.get('RCARGO_HOST', 'localhost')
     parser = argparse.ArgumentParser(description='remote rust cargo commands')
     parser.add_argument('-H', '--host', default=default_host)
+    parser.add_argument('-d', '--debug', action='store_true')
     #TODO: use a dynamic positional argument, we can pass anything to cargo
     #TODO: it will be tried on the remote cargo and raise error if it does
     #TODO: not exist. To do special handling (like install) just watch the 
@@ -90,6 +102,8 @@ if __name__ == '__main__':
     build = subparsers.add_parser('build', help='remote build local cargo package')
 
     args = parser.parse_args()
+    if args.debug:
+        log.setLevel('INFO')
     if args.host == 'localhost':
         print('you need to define a host with -H option or RCARGO_HOST env variable')
         sys.exit(1)
