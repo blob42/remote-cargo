@@ -27,6 +27,7 @@ log = logging.getLogger('rcargo')
 
 
 CARGO_BIN_PATH='~/.cargo/bin/'
+LOCAL_BIN_PATH=''
 DEPS = [
         'rsync'
         ]
@@ -47,18 +48,19 @@ def inst_get_binary(conn, package, debug=False):
     except Exception as e:
         raise e
 
-    bin_path = Path(CARGO_BIN_PATH, bin_name).expanduser()
-    local_path = Path(CARGO_BIN_PATH).expanduser().__str__()+'/'
+    bin_path = Path(LOCAL_BIN_PATH, bin_name).expanduser()
+    local_path = Path(LOCAL_BIN_PATH).expanduser().__str__()+'/'
 
     try:
         get_remote_bin = conn.get(bin_path, local=local_path)
     except FileNotFoundError as e:
         print('could not copy installed package {} from remote'.format(package))
-    print(f'installed [bold blue]{bin_name}[/bold blue] at {CARGO_BIN_PATH}')
+    print(f'installed [bold blue]{bin_name}[/bold blue] at {LOCAL_BIN_PATH}')
 
 
 
 def install(args):
+    print(f'{LOCAL_BIN_PATH}')
     package = args.package
     conn = Connection(args.host)
 
@@ -89,10 +91,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='remote rust cargo commands')
     parser.add_argument('-H', '--host', default=default_host)
     parser.add_argument('-d', '--debug', action='store_true')
-    #TODO: use a dynamic positional argument, we can pass anything to cargo
-    #TODO: it will be tried on the remote cargo and raise error if it does
-    #TODO: not exist. To do special handling (like install) just watch the 
-    #TODO: argument value
+    parser.add_argument('-b', '--bin-path',
+                        default=CARGO_BIN_PATH,
+                        help='local path for installed binary',
+                        metavar='')
+
     subparsers = parser.add_subparsers(dest='command')
     
     install_parser = subparsers.add_parser('install', help='install packages from crates.io with remote build')
@@ -102,6 +105,7 @@ if __name__ == '__main__':
     build = subparsers.add_parser('build', help='remote build local cargo package')
 
     args = parser.parse_args()
+    LOCAL_BIN_PATH = args.bin_path
     if args.debug:
         log.setLevel('INFO')
     if args.host == 'localhost':
