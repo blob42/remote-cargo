@@ -60,11 +60,31 @@ def inst_get_binary(conn, package, debug=False):
 
 
 def install(args):
+    args.debug and print(f'{args}')
     print(f'{LOCAL_BIN_PATH}')
-    package = args.package
+
+    # args could be a package name or a list of parameters for cargo install
+    package = ''
+    params = []
+    if len(args.package) == 1 and not args.package[0].startswith('-'):
+        package = args.package[0]
+    else:
+        for arg in args.package:
+            print(arg)
+            if arg.startswith('--') or arg.startswith('-'):
+                params.append(arg)
+            else:
+                package = arg
+
+    if len(package) == 0:
+        print('no package specified')
+        sys.exit(ERR_CMD)
+        
+    args.debug and print(f"package {package}, params: {params}")
     conn = Connection(args.host)
 
-    cargo_install = conn.run('cargo install {}'.format(package), warn=True, echo=True)
+    param_str = ' '.join(params)
+    cargo_install = conn.run(f'cargo install {param_str} {package}', warn=True, echo=True)
     print('{}'.format(cargo_install.stdout.strip()))
     if cargo_install.failed:
         print(cargo_install.stderr)
@@ -98,9 +118,14 @@ if __name__ == '__main__':
 
     subparsers = parser.add_subparsers(dest='command')
     
-    install_parser = subparsers.add_parser('install', help='install packages from crates.io with remote build')
+    install_parser = subparsers.add_parser('install', prefix_chars="+", help='install packages from crates.io with remote build')
     install_parser.set_defaults(func=install)
-    install_parser.add_argument('package', help='package name', metavar='PACKAGE_NAME')
+
+    install_parser.add_argument('package', nargs="*", help='package name', metavar='PACKAGE_NAME')
+
+    # catch any parameter for cargo commands
+    # for example if I run `rcargoos install --force package_name` it will be catched by any_cmd
+
 
     build = subparsers.add_parser('build', help='remote build local cargo package')
 

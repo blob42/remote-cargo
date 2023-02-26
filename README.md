@@ -9,6 +9,7 @@ binaries into local machine.
 ##### Todo:
 * [ ] Installing binaries
     * [x] install a package binary from crates.io
+    * [x] handle custom install parameters for cargo
     * [ ] install a cargo package bin from local path
 * [ ] Building local project on remote machine
     * [ ] rsync local changes and build
