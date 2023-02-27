@@ -137,9 +137,6 @@ if __name__ == '__main__':
 
     install_parser.add_argument('package', nargs="*", help='package name', metavar='PACKAGE_NAME')
 
-    # catch any parameter for cargo commands
-    # for example if I run `rcargoos install --force package_name` it will be catched by any_cmd
-
 
     build = subparsers.add_parser('build', help='remote build local cargo package')
 
