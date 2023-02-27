@@ -58,8 +58,18 @@ def inst_get_binary(conn, package, debug=False):
     print(f'installed [bold blue]{bin_name}[/bold blue] at {LOCAL_BIN_PATH}')
 
 
+def list(args):
+    """List installed rust binaries on remote host"""
+    conn = Connection(args.host)
+    cargo_list = conn.run("cargo install --list | grep 'v.*:$'", echo=True)
+    # print(f"{cargo_list.stdout.strip()}")
+    if cargo_list.failed:
+        print(cargo_list.stderr)
+        sys.exit(ERR_CMD)
+
 
 def install(args):
+    """Install rust packages from crates.io on remote host and copy binary to local machine."""
     args.debug and print(f'{args}')
     print(f'{LOCAL_BIN_PATH}')
 
@@ -70,26 +80,27 @@ def install(args):
         package = args.package[0]
     else:
         for arg in args.package:
-            print(arg)
             if arg.startswith('--') or arg.startswith('-'):
                 params.append(arg)
             else:
                 package = arg
 
-    if len(package) == 0:
-        print('no package specified')
-        sys.exit(ERR_CMD)
-        
+    # if len(package) == 0:
+    #     print('no package specified')
+    #     sys.exit(ERR_CMD)
+
     args.debug and print(f"package {package}, params: {params}")
     conn = Connection(args.host)
 
     param_str = ' '.join(params)
     cargo_install = conn.run(f'cargo install {param_str} {package}', warn=True, echo=True)
-    print('{}'.format(cargo_install.stdout.strip()))
+    # print('{}'.format(cargo_install.stdout.strip()))
+    sys.exit(0)
     if cargo_install.failed:
         print(cargo_install.stderr)
         sys.exit(ERR_CMD)
-    inst_get_binary(conn, package, args.debug)
+    if len(package) > 0:
+        inst_get_binary(conn, package, args.debug)
 
 
 def ensure_deps():
@@ -109,7 +120,8 @@ if __name__ == '__main__':
     ensure_deps()
     default_host = os.environ.get('RCARGO_HOST', 'localhost')
     parser = argparse.ArgumentParser(description='remote rust cargo commands')
-    parser.add_argument('-H', '--host', default=default_host)
+    parser.add_argument('-H', '--host', default=default_host,
+                        help="remote cargo host")
     parser.add_argument('-d', '--debug', action='store_true')
     parser.add_argument('-b', '--bin-path',
                         default=CARGO_BIN_PATH,
@@ -117,6 +129,8 @@ if __name__ == '__main__':
                         metavar='')
 
     subparsers = parser.add_subparsers(dest='command')
+    list_parser = subparsers.add_parser('list', help='list installed packages on remote host')
+    list_parser.set_defaults(func=list)
     
     install_parser = subparsers.add_parser('install', prefix_chars="+", help='install packages from crates.io with remote build')
     install_parser.set_defaults(func=install)
