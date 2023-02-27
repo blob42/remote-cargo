@@ -1,6 +1,4 @@
-Some scripts for rust development
-
-### 1. Remote Cargo CLI
+### Remote Cargo CLI
 
 #### Description
 
