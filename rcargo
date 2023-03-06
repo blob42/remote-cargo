@@ -95,7 +95,6 @@ def install(args):
     param_str = ' '.join(params)
     cargo_install = conn.run(f'cargo install {param_str} {package}', warn=True, echo=True)
     # print('{}'.format(cargo_install.stdout.strip()))
-    sys.exit(0)
     if cargo_install.failed:
         print(cargo_install.stderr)
         sys.exit(ERR_CMD)
