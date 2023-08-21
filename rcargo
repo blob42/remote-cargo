@@ -36,7 +36,7 @@ ERR_CMD = 1
 ERR_DEPENDENCY = 2
 
 #TODO: binary and package names might differ: use `cargo install --list to extract bin name`
-def inst_get_binary(conn, package, debug=False):
+def inst_get_binary(conn: Connection, package: str, debug: bool = False) -> None:
     find_bin = f'cargo install --list | grep -A1 {package} | sed -nE "s/ *//; 2 p"'
     bin_name = ''
     try:
@@ -52,9 +52,13 @@ def inst_get_binary(conn, package, debug=False):
     local_path = Path(LOCAL_BIN_PATH).expanduser().__str__()+'/'
 
     try:
-        get_remote_bin = conn.get(bin_path, local=local_path)
+        if os.path.exists(bin_path):
+            os.remove(bin_path)
+        conn.get(bin_path, local=local_path)
     except FileNotFoundError as e:
         print('could not copy installed package {} from remote'.format(package))
+        sys.exit(ERR_CMD)
+
     print(f'installed [bold blue]{bin_name}[/bold blue] at {LOCAL_BIN_PATH}')
 
 
