@@ -37,7 +37,7 @@ ERR_DEPENDENCY = 2
 
 #TODO: binary and package names might differ: use `cargo install --list to extract bin name`
 def inst_get_binary(conn: Connection, package: str, debug: bool = False) -> None:
-    find_bin = f'cargo install --list | grep -A1 {package} | sed -nE "s/ *//; 2 p"'
+    find_bin = f'cargo install --list | grep -A1 ^{package} | sed -nE "s/ *//; 2 p"'
     bin_name = ''
     try:
         res = conn.run(find_bin, echo=False, hide='out')
